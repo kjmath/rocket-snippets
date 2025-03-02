@@ -1,16 +1,19 @@
 import aerosandbox.numpy as np
+import aerosandbox as asb
 from aerosandbox.common import ImplicitAnalysis
 from cantera import Solution
 from pathlib import Path
 import yaml
+import json
 from chamber_equilibrium_model.helpers import thermo
 from proptools import constants
 from typing import Optional
 import casadi as cas
+import matplotlib.pyplot as plt
 
 # constants
-p_STP = 101325  # Pa
-R_univ = constants.R_univ  # J/(mol*K); universal gas constant
+P_STP = 101325  # Pa
+R_UNIV = constants.R_univ  # J/(mol*K); universal gas constant
 
 
 class ChamberEquilibrium(ImplicitAnalysis):
@@ -28,6 +31,9 @@ class ChamberEquilibrium(ImplicitAnalysis):
         motor.
 
         Args:
+            propellant_formula (dict): a dictionary with keys that are
+                propellant ingredients and values that are mass fractions,
+                e.g. {"AP": 0.8, "HTPB+Curative": 0.2}
             p_c (float): motor chamber pressure, [Pa]
             p_e (float): nozzle exit pressure, [Pa]
             gas_obj_products (cantera.Solution): cantera.Solution object
@@ -37,10 +43,6 @@ class ChamberEquilibrium(ImplicitAnalysis):
             T_exit_guess (float): guess at the nozzle exit temperature, [K]
         """
 
-        # if not np.sum(np.array(list(
-        #     propellant_formula.values())) - 1) < 1e-2:
-        #     raise ValueError("Propellant formula mass fractions do not sum \
-        #                       to 1!")
         self.prop_formula = propellant_formula
         self.p_c = p_c
         self.p_e = p_e
@@ -109,9 +111,9 @@ class ChamberEquilibrium(ImplicitAnalysis):
         molar_entropies = np.array(  # J / mol K
             [func(temperature) for func in self.entropy_funcs]
         )
-        molar_entropy_gas_adjustment = -R_univ * np.log(
+        molar_entropy_gas_adjustment = -R_UNIV * np.log(
             self.mol_chamber[self.index_gas] / self.n_moles_gas_chamber
-        ) - R_univ * np.log(pressure / p_STP)
+        ) - R_UNIV * np.log(pressure / P_STP)
         molar_entropies[self.index_gas] += molar_entropy_gas_adjustment  # type: ignore[reportArgumentType]
         adjusted_molar_entropy = np.sum(molar_entropies * self.mol_chamber)  # type: ignore[reportArgumentType]
 
@@ -134,9 +136,9 @@ class ChamberEquilibrium(ImplicitAnalysis):
 
         # minimize Gibb's free energy for gaseous species
         self.opti.subject_to(
-            species_gibbs_energies[self.index_gas] / (R_univ * self.temp_chamber)
+            species_gibbs_energies[self.index_gas] / (R_UNIV * self.temp_chamber)
             + np.log(self.mol_chamber[self.index_gas] / self.n_moles_gas_chamber)
-            + np.log(self.p_c / p_STP)
+            + np.log(self.p_c / P_STP)
             - (
                 self.prod_stoich_coef_mat[self.index_gas, :]
                 @ self.lagrange_mults_div_RT_chamber
@@ -146,7 +148,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
 
         # minimize Gibb's free energy for condensed phase species
         self.opti.subject_to(
-            species_gibbs_energies[self.index_condensed] / (R_univ * self.temp_chamber)
+            species_gibbs_energies[self.index_condensed] / (R_UNIV * self.temp_chamber)
             - (
                 self.prod_stoich_coef_mat[self.index_condensed, :]
                 @ self.lagrange_mults_div_RT_chamber
@@ -297,12 +299,6 @@ class ChamberEquilibrium(ImplicitAnalysis):
         self.mass_fracs = self.mol_chamber * self.mol_weights_chamber
         self.mol_fracs = self.mol_chamber / self.n_tot
 
-        # self.mol_frac_dict = {}
-        # self.mass_frac_dict = {}
-        # for index, name in enumerate(self.selected_species):
-        #     self.mol_frac_dict[name] = self.mol_fracs[index]
-        #     self.mass_frac_dict[name] = self.mass_fracs[index]
-
         # calculate enthalpy after reaction (should equal enthalpy before
         # reaction)
         self.enthalpy_after_reac = np.sum(  # type: ignore[reportOperatorIssue]
@@ -316,7 +312,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
             * self.mol_chamber
         )
         self.mean_MW = 1 / self.n_tot
-        self.R_gas = R_univ / self.mean_MW
+        self.R_gas = R_UNIV / self.mean_MW
         self.gamma = 1 / (1 - self.R_gas / self.cp_after_reac)
 
     def get_results(self):
@@ -346,15 +342,6 @@ class ChamberEquilibrium(ImplicitAnalysis):
             mass_frac_dict[name] = np.around(self.mass_fracs[index], 5)
 
         print("Chamber Temperature: ", np.around(self.temp_chamber, 3), " K")
-        # print('Exit Temperature: ', np.around(self.temp_exit, 3), ' K')
-        # print('Elements: ', self.prop_elements)
-        # print('Lagrange Multipliers: ', self.lagrange_mults_div_RT)
-        print("Mole Fractions: ", mol_frac_dict)
-        print("Mass Fractions: ", mass_frac_dict)
-        # print('Mole Fraction Sum Check: ', np.sum(self.mol_fracs))
-        # print('Enthalpy Before Reaction: ', self.total_enthalpy_ing, ' J/kg')
-        # print('Enthalpy After Reaction: ', self.enthalpy_after_reac, ' J/kg')
-        print("Entropy After Reaction: ", self.entropy_chamber, " J/kg-K")
         print(
             "Mean Molecular Weight (inc. condensed): ",
             np.around(self.mean_MW, 6),
@@ -363,9 +350,13 @@ class ChamberEquilibrium(ImplicitAnalysis):
         print("Mean Heat Capacity: ", np.around(self.cp_after_reac, 2), " J/kg-K")
         print("Gas Constant: ", np.around(self.R_gas, 3), " J/kg-K")
         print("Gamma: ", np.around(self.gamma, 4))
+        print("Mole Fractions:\n", json.dumps(mol_frac_dict, sort_keys=True, indent=4))
+        print("Mass Fractions:\n", json.dumps(mass_frac_dict, sort_keys=True, indent=4))
+        print("Entropy After Reaction: ", self.entropy_chamber, " J/kg-K")
 
 
 if __name__ == "__main__":
+    ### Simple Example
     oxamide_frac = 0.2
     prop_formula_ox = {
         "AP": 0.8 * (1 - oxamide_frac),
@@ -377,5 +368,50 @@ if __name__ == "__main__":
     }
     p_c = 1e6  # Pa
 
-    chamber = ChamberEquilibrium(propellant_formula=prop_formula_ox, p_c=p_c)
-    chamber.print_report()
+    chamber1 = ChamberEquilibrium(propellant_formula=prop_formula_ox, p_c=p_c)
+    chamber1.print_report()
+
+    ### Example with Sweep
+
+    # establish ranges for sweeping pressure and oxamide mass fraction
+    ox_range = np.linspace(0, 0.2, num=20)
+    pressure_range = np.array([0.5, 1, 2, 3]) * 1e6  # type: ignore[reportOperatorIssue]
+
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(9, 6)
+    ax.set_xlabel("Propellant Oxamide Mass Fraction [-]")
+    ax.set_ylabel("Equilibrium Chamber Temperature [K]")
+    fig.suptitle(
+        "Chamber Temperature vs. Propellant Oxamide Mass Fraction\nfor Different Chamber Pressures"
+    )
+
+    # sweep parameters, run simulation, and plot for each chamber pressure
+    for p in pressure_range:
+        p_output = []
+        for (
+            oxamide_frac
+        ) in ox_range:  # initialize propellant formula parameter to sweep
+            opti = asb.Opti()  # type: ignore[reportCallIssue]
+            prop_formula_ox = {
+                "AP": 0.8 * (1 - oxamide_frac),
+                "HTPB+Curative": 0.142 * (1 - oxamide_frac),
+                "IDP": 0.0524 * (1 - oxamide_frac),
+                "C(gr)": 0.0026 * (1 - oxamide_frac),
+                "HX-752": 0.003 * (1 - oxamide_frac),
+                "Oxamide": oxamide_frac,
+            }
+            chamber2 = ChamberEquilibrium(
+                propellant_formula=prop_formula_ox,
+                p_c=p,
+                opti=opti,  # type: ignore[reportCallIssue]
+            )
+            sol = opti.solve(verbose=False)  # set verbose to false
+            chamber2.substitute_solution(sol)
+            p_output.append(chamber2.temp_chamber)
+
+        ax.plot(ox_range, p_output, label=f"{p * 1e-6} MPa")
+
+    ax.grid(True)
+    ax.legend()
+    fig.tight_layout()
+    plt.show()

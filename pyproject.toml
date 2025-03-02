@@ -8,6 +8,7 @@ dependencies = [
     "aerosandbox==3.5.7",
     "cantera>=3.1.0",
     "casadi>=3.6.7",
+    "matplotlib>=3.10.1",
     "proptools-rocket>=0.0.2",
     "pyyaml>=6.0.2",
     "typing>=3.10.0.0",

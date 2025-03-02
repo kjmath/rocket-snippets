@@ -2,11 +2,9 @@ name: Actions
 
 on: pull_request
 
-
 jobs:
 
   lint_and_test:
-    name: python
     runs-on: ubuntu-latest
 
     steps:
@@ -17,3 +15,6 @@ jobs:
         with:
           # Install a specific version of uv.
           version: "0.6.3"
+
+      - name: lint and test
+        run: uv run --locked -- pre-commit run --all-files --show-diff-on-failure --color=always

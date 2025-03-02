@@ -16,6 +16,7 @@ uv run chamber_equilibrium.py
 Running the model with ```uv run``` will automatically download and install compatible versions of python and all dependencies in a virtual environment. 
 
 ## File Structure of this Sub-Module
+
 - ```chamber_equilibrium.py```: the main file, which implements variables and constraints of the thermodynamic equilibrium problem and solves for the equilibrium condition in the ```ChamberEquilibrium()``` class
 - ```helpers/thermo.py```: various helper methods, including methods for determining stoichiometric coefficient matrices and implementing NASA-9 models for thermodynamic properties
 - ```helpers/products.yaml```: file containing [NASA-9 coefficients](https://ntrs.nasa.gov/citations/20020085330) and other parameters for products in propellants, formatted as a ```yaml``` file for use with ```Cantera``` objects

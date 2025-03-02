@@ -1,0 +1,72 @@
+elements: [C, O, N, H, Cl, Al, Fe, Zn, Mg, Ti]  # expand to more later
+
+species:
+  Al:
+    mol_weight: 26.9815380  # g mol**-1
+    heat_form: 0  # J mol**-1
+    formula: {Al: 1}
+
+  C(gr):
+    mol_weight: 12.0107000
+    heat_form: 0
+    formula: {C: 1}
+
+  AP:
+    mol_weight: 117.4890600
+    heat_form: -295767.000
+    formula: {N: 1, H: 4, Cl: 1, O: 4}
+
+  HTPB+Curative:
+    mol_weight: 9142.870036
+    heat_form: -19050833.799
+    formula: {H: 978, C: 656, O: 13, N: 5}
+
+  IDP:
+    mol_weight: 298.505666
+    heat_form: -945600.000
+    formula: {C: 19, H: 38, O: 2}
+
+  HX-752:
+    mol_weight: 244.290372
+    heat_form: -521500.000
+    formula: {C: 14, H: 16, N: 2, O: 2}
+
+  Oxamide:
+    mol_weight: 88.065648
+    heat_form: -504400.000
+    formula: {H: 4, C: 2, N: 2, O: 2}
+
+  Fe2O3:
+    mol_weight: 159.6882000
+    heat_form: -824248.000
+    formula: {Fe: 2, O: 3}
+
+  ZrC:
+    mol_weight: 103.2347000
+    heat_form: -196648.000
+    formula: {Zr: 1, C: 1}
+
+  SiC:
+    mol_weight: 40.0962000
+    heat_form: 734946.140
+    formula: {Si: 1, C: 1}
+
+  Zn:
+    mol_weight: 65.3900000
+    heat_form: 0
+    formula: {Zn: 1,}
+
+  Mg:
+    mol_weight: 24.3050000
+    heat_form: 0
+    formula: {Mg: 1}
+
+  Ti:
+    mol_weight: 47.8670000
+    heat_form: 0
+    formula: {Ti: 1}
+
+  DOA:
+    mol_weight: 370.568654
+    heat_form: -1136513.905
+    formula: {C: 22, H: 42, O: 4}

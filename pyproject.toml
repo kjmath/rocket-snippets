@@ -7,12 +7,15 @@ requires-python = ">=3.13"
 dependencies = [
     "aerosandbox==3.5.7",
     "cantera>=3.1.0",
+    "casadi>=3.6.7",
     "proptools-rocket>=0.0.2",
     "pyyaml>=6.0.2",
+    "typing>=3.10.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.1.0",
     "pyright>=1.1.395",
     "pytest>=8.3.4",
     "ruff>=0.9.9",

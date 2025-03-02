@@ -1,0 +1,27 @@
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: lint
+        entry: uv run --locked -- ruff check . --fix
+        language: system
+        types: [python]
+        require_serial: true
+      - id: format
+        name: format
+        entry: uv run --locked -- ruff format .
+        language: system
+        types: [python]
+        require_serial: true
+      - id: typecheck
+        name: typecheck
+        entry: uv run --locked -- pyright .
+        language: system
+        types: [python]
+        require_serial: true
+      - id: test
+        name: test
+        entry: uv run --locked -- pytest .
+        language: system
+        types: [python]
+        require_serial: true

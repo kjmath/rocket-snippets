@@ -46,7 +46,7 @@ def get_elements_in_propellant(
     elements_in_prop = []
 
     for ingredient in prop_formula:
-        ing_formula = prop_ingredients_dict['species'][ingredient]['formula']
+        ing_formula = prop_ingredients_dict["species"][ingredient]["formula"]
         for element in ing_formula:
             if element not in elements_in_prop:
                 elements_in_prop.append(element)
@@ -54,10 +54,7 @@ def get_elements_in_propellant(
     return elements_in_prop
 
 
-def get_species_to_include(
-    elements_in_prop: list,
-    gas_obj: ct.Solution
-) -> list:
+def get_species_to_include(elements_in_prop: list, gas_obj: ct.Solution) -> list:
     """Determine which species from the gas_obj to include in chamber
     equilibrium calculations.
 
@@ -95,14 +92,16 @@ def enthalpy_func_one_piece(
     """
     zone_shift = 11 * zone
     h = (
-        temperature * constants.R_univ * (
-            - coefs[3 + zone_shift] * temperature ** (-2)
+        temperature
+        * constants.R_univ
+        * (
+            -coefs[3 + zone_shift] * temperature ** (-2)
             + coefs[4 + zone_shift] * np.log(temperature) / temperature
             + coefs[5 + zone_shift]
             + coefs[6 + zone_shift] / 2 * temperature
-            + coefs[7 + zone_shift] / 3 * temperature ** 2
-            + coefs[8 + zone_shift] / 4 * temperature ** 3
-            + coefs[9 + zone_shift] / 5 * temperature ** 4
+            + coefs[7 + zone_shift] / 3 * temperature**2
+            + coefs[8 + zone_shift] / 4 * temperature**3
+            + coefs[9 + zone_shift] / 5 * temperature**4
             + coefs[10 + zone_shift] / temperature
         )
     )
@@ -158,17 +157,15 @@ def entropy_func_one_piece(
         float: standard entropy at temperatures, [units: J mol**-1 K**-1]
     """
     zone_shift = 11 * zone
-    s = (
-        constants.R_univ * (
-            - coefs[3 + zone_shift] / 2 * temperature ** (-2)
-            - coefs[4 + zone_shift] / temperature
-            + coefs[5 + zone_shift] * np.log(temperature)
-            + coefs[6 + zone_shift] * temperature
-            + coefs[7 + zone_shift] / 2 * temperature ** 2
-            + coefs[8 + zone_shift] / 3 * temperature ** 3
-            + coefs[9 + zone_shift] / 4 * temperature ** 4
-            + coefs[11 + zone_shift]
-        )
+    s = constants.R_univ * (
+        -coefs[3 + zone_shift] / 2 * temperature ** (-2)
+        - coefs[4 + zone_shift] / temperature
+        + coefs[5 + zone_shift] * np.log(temperature)
+        + coefs[6 + zone_shift] * temperature
+        + coefs[7 + zone_shift] / 2 * temperature**2
+        + coefs[8 + zone_shift] / 3 * temperature**3
+        + coefs[9 + zone_shift] / 4 * temperature**4
+        + coefs[11 + zone_shift]
     )
 
     return s
@@ -223,16 +220,14 @@ def heat_capacity_func_one_piece(
         float: standard heat capacity at temperatures, [units: J mol**-1 K**-1]
     """
     zone_shift = 11 * zone
-    cp = (
-        constants.R_univ * (
-            + coefs[3 + zone_shift] * temperature ** (-2)
-            + coefs[4 + zone_shift] / temperature
-            + coefs[5 + zone_shift]
-            + coefs[6 + zone_shift] * temperature
-            + coefs[7 + zone_shift] * temperature ** 2
-            + coefs[8 + zone_shift] * temperature ** 3
-            + coefs[9 + zone_shift] * temperature ** 4
-        )
+    cp = constants.R_univ * (
+        +coefs[3 + zone_shift] * temperature ** (-2)
+        + coefs[4 + zone_shift] / temperature
+        + coefs[5 + zone_shift]
+        + coefs[6 + zone_shift] * temperature
+        + coefs[7 + zone_shift] * temperature**2
+        + coefs[8 + zone_shift] * temperature**3
+        + coefs[9 + zone_shift] * temperature**4
     )
 
     return cp
@@ -299,23 +294,23 @@ def make_thermo_funcs(
         cp_func_list.append(partial(heat_capacity_func_blended, coefs=coefs))
 
     out = {
-        'entropy_funcs': entropy_func_list,
-        'enthalpy_funcs': enthalpy_func_list,
-        'heat_cap_funcs': cp_func_list,
+        "entropy_funcs": entropy_func_list,
+        "enthalpy_funcs": enthalpy_func_list,
+        "heat_cap_funcs": cp_func_list,
     }
 
     return out
 
 
 def main():
-    yaml_file = 'products.yaml'
+    yaml_file = "products.yaml"
 
     gas_obj = ct.Solution(yaml_file)
 
     thermo_func_dict = make_thermo_funcs(gas_obj=gas_obj)
-    entropy_funcs = thermo_func_dict['entropy_funcs']
-    enthalpy_funcs = thermo_func_dict['enthalpy_funcs']
-    heat_cap_funcs = thermo_func_dict['heat_cap_funcs']
+    entropy_funcs = thermo_func_dict["entropy_funcs"]
+    enthalpy_funcs = thermo_func_dict["enthalpy_funcs"]
+    heat_cap_funcs = thermo_func_dict["heat_cap_funcs"]
 
     temps_test = np.linspace(298, 6000, 500)
 
@@ -324,18 +319,14 @@ def main():
     for index, name in enumerate(species_names):
         species_obj = gas_obj.species(name)
 
-        h_test = np.array(
-            [species_obj.thermo.h(temp) for temp in temps_test]) * 1e-3
-        s_test = np.array(
-            [species_obj.thermo.s(temp) for temp in temps_test]) * 1e-3
-        cp_test = np.array(
-            [species_obj.thermo.cp(temp) for temp in temps_test]) * 1e-3
+        h_test = np.array([species_obj.thermo.h(temp) for temp in temps_test]) * 1e-3
+        s_test = np.array([species_obj.thermo.s(temp) for temp in temps_test]) * 1e-3
+        cp_test = np.array([species_obj.thermo.cp(temp) for temp in temps_test]) * 1e-3
 
         g_test = []
         for temp in temps_test:
             gas_obj.TP = temp, 101325
-            g_test.append(
-                gas_obj.standard_gibbs_RT[index] * constants.R_univ * temp)
+            g_test.append(gas_obj.standard_gibbs_RT[index] * constants.R_univ * temp)
 
         h = enthalpy_funcs[index](temps_test)
         s = entropy_funcs[index](temps_test)
@@ -344,34 +335,34 @@ def main():
 
         fig, axs = plt.subplots(2, 2)
         fig.set_size_inches(14, 7)
-        fig.suptitle('Surrogate Models for {species}'.format(species=name))
+        fig.suptitle("Surrogate Models for {species}".format(species=name))
 
-        axs[0, 0].set_title('Enthalpy')
-        axs[0, 0].set_xlabel('Temperature, [K]')
-        axs[0, 0].set_ylabel('Enthalpy, [J mol**-1]')
-        axs[0, 0].plot(temps_test, h_test, label='Cantera output')
-        axs[0, 0].plot(temps_test, h, '--', label='Surrogate model output')
+        axs[0, 0].set_title("Enthalpy")
+        axs[0, 0].set_xlabel("Temperature, [K]")
+        axs[0, 0].set_ylabel("Enthalpy, [J mol**-1]")
+        axs[0, 0].plot(temps_test, h_test, label="Cantera output")
+        axs[0, 0].plot(temps_test, h, "--", label="Surrogate model output")
         axs[0, 0].legend()
 
-        axs[0, 1].set_title('Entropy')
-        axs[0, 1].set_xlabel('Temperature, [K]')
-        axs[0, 1].set_ylabel('Entropy, [J mol**-1 K**-1]')
-        axs[0, 1].plot(temps_test, s_test, label='Cantera output')
-        axs[0, 1].plot(temps_test, s, '--', label='Surrogate model output')
+        axs[0, 1].set_title("Entropy")
+        axs[0, 1].set_xlabel("Temperature, [K]")
+        axs[0, 1].set_ylabel("Entropy, [J mol**-1 K**-1]")
+        axs[0, 1].plot(temps_test, s_test, label="Cantera output")
+        axs[0, 1].plot(temps_test, s, "--", label="Surrogate model output")
         axs[0, 1].legend()
 
         axs[1, 0].set_title("Gibb's Free Energy")
-        axs[1, 0].set_xlabel('Temperature, [K]')
-        axs[1, 0].set_ylabel('Entropy, [J mol**-1]')
-        axs[1, 0].plot(temps_test, g_test, label='Cantera output')
-        axs[1, 0].plot(temps_test, g, '--', label='Surrogate model output')
+        axs[1, 0].set_xlabel("Temperature, [K]")
+        axs[1, 0].set_ylabel("Entropy, [J mol**-1]")
+        axs[1, 0].plot(temps_test, g_test, label="Cantera output")
+        axs[1, 0].plot(temps_test, g, "--", label="Surrogate model output")
         axs[1, 0].legend()
 
         axs[1, 1].set_title("Heat Capacity at Constant Pressure")
-        axs[1, 1].set_xlabel('Temperature, [K]')
-        axs[1, 1].set_ylabel('Heat Capacity, [J mol**-1 K**-1]')
-        axs[1, 1].plot(temps_test, cp_test, label='Cantera output')
-        axs[1, 1].plot(temps_test, cp, '--', label='Surrogate model output')
+        axs[1, 1].set_xlabel("Temperature, [K]")
+        axs[1, 1].set_ylabel("Heat Capacity, [J mol**-1 K**-1]")
+        axs[1, 1].plot(temps_test, cp_test, label="Cantera output")
+        axs[1, 1].plot(temps_test, cp, "--", label="Surrogate model output")
         axs[1, 1].legend()
 
         plt.tight_layout()
@@ -379,5 +370,5 @@ def main():
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

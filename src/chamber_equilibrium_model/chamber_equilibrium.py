@@ -10,8 +10,8 @@ from typing import Optional
 import casadi as cas
 
 # constants
-p_STP = 101325  # Pa
-R_univ = constants.R_univ  # J/(mol*K); universal gas constant
+P_STP = 101325  # Pa
+R_UNIV = constants.R_univ  # J/(mol*K); universal gas constant
 
 
 class ChamberEquilibrium(ImplicitAnalysis):
@@ -109,9 +109,9 @@ class ChamberEquilibrium(ImplicitAnalysis):
         molar_entropies = np.array(  # J / mol K
             [func(temperature) for func in self.entropy_funcs]
         )
-        molar_entropy_gas_adjustment = -R_univ * np.log(
+        molar_entropy_gas_adjustment = -R_UNIV * np.log(
             self.mol_chamber[self.index_gas] / self.n_moles_gas_chamber
-        ) - R_univ * np.log(pressure / p_STP)
+        ) - R_UNIV * np.log(pressure / P_STP)
         molar_entropies[self.index_gas] += molar_entropy_gas_adjustment  # type: ignore[reportArgumentType]
         adjusted_molar_entropy = np.sum(molar_entropies * self.mol_chamber)  # type: ignore[reportArgumentType]
 
@@ -134,9 +134,9 @@ class ChamberEquilibrium(ImplicitAnalysis):
 
         # minimize Gibb's free energy for gaseous species
         self.opti.subject_to(
-            species_gibbs_energies[self.index_gas] / (R_univ * self.temp_chamber)
+            species_gibbs_energies[self.index_gas] / (R_UNIV * self.temp_chamber)
             + np.log(self.mol_chamber[self.index_gas] / self.n_moles_gas_chamber)
-            + np.log(self.p_c / p_STP)
+            + np.log(self.p_c / P_STP)
             - (
                 self.prod_stoich_coef_mat[self.index_gas, :]
                 @ self.lagrange_mults_div_RT_chamber
@@ -146,7 +146,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
 
         # minimize Gibb's free energy for condensed phase species
         self.opti.subject_to(
-            species_gibbs_energies[self.index_condensed] / (R_univ * self.temp_chamber)
+            species_gibbs_energies[self.index_condensed] / (R_UNIV * self.temp_chamber)
             - (
                 self.prod_stoich_coef_mat[self.index_condensed, :]
                 @ self.lagrange_mults_div_RT_chamber
@@ -310,7 +310,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
             * self.mol_chamber
         )
         self.mean_MW = 1 / self.n_tot
-        self.R_gas = R_univ / self.mean_MW
+        self.R_gas = R_UNIV / self.mean_MW
         self.gamma = 1 / (1 - self.R_gas / self.cp_after_reac)
 
     def get_results(self):

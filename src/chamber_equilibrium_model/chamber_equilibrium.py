@@ -23,12 +23,20 @@ class ChamberEquilibrium(ImplicitAnalysis):
         propellant_formula: dict,
         p_c: float,
         p_e: float = 101325,
-        gas_obj_products: Optional[Solution] = None,
         T_c_guess=2200,
         T_exit_guess=1000,
+        gas_obj_products: Optional[Solution] = None,
     ):
         """An implicit analysis for the internal ballistics of a solid rocket
-        motor.
+        motor. Takes as inputs the propellant formula, chamber and
+        exit chamber pressures, and optionally guesses for chamber and exit
+        temperatures, as well as a Cantera.Solution object represent the
+        combustion products of the propellant.
+
+        The class implicitly makes a call to the AeroSandbox.opti.solve method
+        to find a self-consistent solution for the equilibrium chamber
+        temperature and species mole fractions (as well as all intermediate
+        variables defined in the constraints below).
 
         Args:
             propellant_formula (dict): a dictionary with keys that are

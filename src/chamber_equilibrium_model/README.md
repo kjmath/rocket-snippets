@@ -1,6 +1,6 @@
 # Chamber Equilibrium Model
 
-An end-to-end differentiable thermodynamic equilibrium model and solver for solid rocket motors, compatible with AeroSandbox and other automatic-differentiation frameworks.
+An end-to-end differentiable thermodynamic equilibrium model and solver for solid rocket motors, compatible with [AeroSandbox](https://github.com/peterdsharpe/AeroSandbox) and other automatic-differentiation frameworks.
 
 
 ## Installation and Running
@@ -26,7 +26,7 @@ Running the model with ```uv run``` will automatically download and install comp
 
 This use-case is implemented in the ```chamber_equilibrium.py``` file. 
 
-Some context for this example: This code was written as part of my PhD work to optimize the design of solid rocket motors with constraints on plume radiant emission. The work focused on a class of slow-burning, solid rocket propellants which were doped with the burn-rate supressant oxamide. 
+Some context for this example: This code was written as part of my [PhD work](https://hdl.handle.net/1721.1/151348) to optimize the design of solid rocket motors with constraints on plume radiant emission. The work focused on a class of slow-burning, solid rocket propellants which were doped with the burn-rate supressant oxamide. 
 
 In this example, we use the model to understand how the equilibrium chamber temperature is affectd by varying chamber pressure and mass fractions of the burn-rate supressant oxamide. A base propellant formulation that can be diluted with some mass fraction ```oxamide_frac``` of oxamide is used:
 ```python

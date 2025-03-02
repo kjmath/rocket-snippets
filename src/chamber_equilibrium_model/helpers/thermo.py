@@ -1,8 +1,9 @@
 import aerosandbox.numpy as np
 from proptools import constants
-import cantera as ct
+from cantera import Solution
 import matplotlib.pyplot as plt
 from functools import partial
+from numpy.typing import NDArray
 
 
 def make_stoich_coef_matrix(gas_obj):
@@ -54,7 +55,7 @@ def get_elements_in_propellant(
     return elements_in_prop
 
 
-def get_species_to_include(elements_in_prop: list, gas_obj: ct.Solution) -> list:
+def get_species_to_include(elements_in_prop: list, gas_obj: Solution) -> list:
     """Determine which species from the gas_obj to include in chamber
     equilibrium calculations.
 
@@ -78,8 +79,8 @@ def get_species_to_include(elements_in_prop: list, gas_obj: ct.Solution) -> list
 
 
 def enthalpy_func_one_piece(
-    temperature: np.array,
-    coefs: np.array,
+    temperature: NDArray[np.float64],
+    coefs: NDArray[np.float64],
     zone: int,
 ):
     """NASA 9-Coefficient standard enthalpy parameterization.
@@ -110,8 +111,8 @@ def enthalpy_func_one_piece(
 
 
 def enthalpy_func_blended(
-    temperature: np.array,
-    coefs: np.array,
+    temperature: NDArray[np.float64],
+    coefs: NDArray[np.float64],
 ):
     """Blended NASA 9-Coefficient enthalpy models."""
     num_zones = int(coefs[0])
@@ -144,8 +145,8 @@ def enthalpy_func_blended(
 
 
 def entropy_func_one_piece(
-    temperature: np.array,
-    coefs: np.array,
+    temperature: NDArray[np.float64],
+    coefs: NDArray[np.float64],
     zone: int,
 ):
     """NASA 9-Coefficient standard entropy parameterization.
@@ -172,8 +173,8 @@ def entropy_func_one_piece(
 
 
 def entropy_func_blended(
-    temperature: np.array,
-    coefs: np.array,
+    temperature: NDArray[np.float64],
+    coefs: NDArray[np.float64],
 ):
     """Blended NASA 9-Coefficient entropy models."""
     num_zones = int(coefs[0])
@@ -206,8 +207,8 @@ def entropy_func_blended(
 
 
 def heat_capacity_func_one_piece(
-    temperature: np.array,
-    coefs: np.array,
+    temperature: NDArray[np.float64],
+    coefs: NDArray[np.float64],
     zone: int,
 ):
     """NASA 9-Coefficient standard heat capcity at constant pressure
@@ -234,8 +235,8 @@ def heat_capacity_func_one_piece(
 
 
 def heat_capacity_func_blended(
-    temperature: np.array,
-    coefs: np.array,
+    temperature: NDArray[np.float64],
+    coefs: NDArray[np.float64],
 ):
     """Blended NASA 9-Coefficient heat capacity models."""
     num_zones = int(coefs[0])
@@ -268,7 +269,7 @@ def heat_capacity_func_blended(
 
 
 def make_thermo_funcs(
-    gas_obj: ct.Solution,
+    gas_obj: Solution,
 ):
     """Return a dictionary containing two lists of functions, describing
     entropy and enthalpy for each species.
@@ -305,7 +306,7 @@ def make_thermo_funcs(
 def main():
     yaml_file = "products.yaml"
 
-    gas_obj = ct.Solution(yaml_file)
+    gas_obj = Solution(yaml_file)
 
     thermo_func_dict = make_thermo_funcs(gas_obj=gas_obj)
     entropy_funcs = thermo_func_dict["entropy_funcs"]
@@ -319,9 +320,9 @@ def main():
     for index, name in enumerate(species_names):
         species_obj = gas_obj.species(name)
 
-        h_test = np.array([species_obj.thermo.h(temp) for temp in temps_test]) * 1e-3
-        s_test = np.array([species_obj.thermo.s(temp) for temp in temps_test]) * 1e-3
-        cp_test = np.array([species_obj.thermo.cp(temp) for temp in temps_test]) * 1e-3
+        h_test = np.array([species_obj.thermo.h(temp) for temp in temps_test]) * 1e-3  # type: ignore[reportOperatorIssue]
+        s_test = np.array([species_obj.thermo.s(temp) for temp in temps_test]) * 1e-3  # type: ignore[reportOperatorIssue]
+        cp_test = np.array([species_obj.thermo.cp(temp) for temp in temps_test]) * 1e-3  # type: ignore[reportOperatorIssue]
 
         g_test = []
         for temp in temps_test:

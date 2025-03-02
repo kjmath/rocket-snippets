@@ -1,10 +1,12 @@
 import aerosandbox.numpy as np
 from aerosandbox.common import ImplicitAnalysis
-import cantera as ct
+from cantera import Solution
 from pathlib import Path
 import yaml
 from chamber_equilibrium_model.helpers import thermo
 from proptools import constants
+from typing import Optional
+import casadi as cas
 
 # constants
 p_STP = 101325  # Pa
@@ -18,7 +20,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
         propellant_formula: dict,
         p_c: float,
         p_e: float = 101325,
-        gas_obj_products: ct.Solution = None,
+        gas_obj_products: Optional[Solution] = None,
         T_c_guess=2200,
         T_exit_guess=1000,
     ):
@@ -49,7 +51,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
         # make Cantera gas object, assign attribute
         if gas_obj_products is None:
             mechanism_path = self.parent_directory / "helpers/products.yaml"
-            self.gas_obj = ct.Solution(mechanism_path)
+            self.gas_obj = Solution(mechanism_path)
         else:
             self.gas_obj = gas_obj_products
 
@@ -76,22 +78,22 @@ class ChamberEquilibrium(ImplicitAnalysis):
             mol_chamber_guess[self.selected_species.index("Al2O3(b)")] = mol_Al_guess
 
         # initialize chamber variables
-        self.n_moles_gas_chamber = self.opti.variable(
+        self.n_moles_gas_chamber = self.opti.variable(  # type: ignore[reportArgumentType]
             init_guess=n_moles_gas_guess, log_transform=True
         )
-        self.mol_chamber = self.opti.variable(
+        self.mol_chamber = self.opti.variable(  # type: ignore[reportArgumentType]
             init_guess=mol_chamber_guess, log_transform=True
         )
-        self.lagrange_mults_div_RT_chamber = self.opti.variable(
+        self.lagrange_mults_div_RT_chamber = self.opti.variable(  # type: ignore[reportArgumentType]
             init_guess=np.zeros(len(self.prop_elements))
         )
-        self.temp_chamber = self.opti.variable(init_guess=self.T_c_guess)
-        self.temp_exit = self.opti.variable(init_guess=self.T_e_guess)
+        self.temp_chamber = self.opti.variable(init_guess=self.T_c_guess)  # type: ignore[reportArgumentType]
+        self.temp_exit = self.opti.variable(init_guess=self.T_e_guess)  # type: ignore[reportArgumentType]
 
     def _molar_entropy(
         self,
-        temperature,
-        pressure,
+        temperature: float | cas.MX,
+        pressure: float | cas.MX,
     ):
         """Calculate specific molar entropy of combustion products at different
         temperatures and pressures, assuming frozen flow.
@@ -110,8 +112,8 @@ class ChamberEquilibrium(ImplicitAnalysis):
         molar_entropy_gas_adjustment = -R_univ * np.log(
             self.mol_chamber[self.index_gas] / self.n_moles_gas_chamber
         ) - R_univ * np.log(pressure / p_STP)
-        molar_entropies[self.index_gas] += molar_entropy_gas_adjustment
-        adjusted_molar_entropy = np.sum(molar_entropies * self.mol_chamber)
+        molar_entropies[self.index_gas] += molar_entropy_gas_adjustment  # type: ignore[reportArgumentType]
+        adjusted_molar_entropy = np.sum(molar_entropies * self.mol_chamber)  # type: ignore[reportArgumentType]
 
         return adjusted_molar_entropy
 
@@ -159,21 +161,21 @@ class ChamberEquilibrium(ImplicitAnalysis):
                 (self.prod_stoich_coef_mat.T @ self.mol_chamber)
                 - (
                     self.reac_stoich_coef_mat.T
-                    @ (self.mass_fracs_ing / self.mol_weight_ing)
+                    @ (self.mass_fracs_ing / self.mol_weight_ing)  # type: ignore[reportOperatorIssue]
                 )
             )
             == 0
         )
 
         # sum of gas moles equals n mol total gas
-        self.opti.subject_to(  # TODO check
-            np.sum(self.mol_chamber[self.index_gas]) - self.n_moles_gas_chamber == 0
+        self.opti.subject_to(
+            np.sum(self.mol_chamber[self.index_gas]) - self.n_moles_gas_chamber == 0  # type: ignore[reportArgumentType]
         )
 
         # conservation of total enthalpy in reacting system
         self.opti.subject_to(
             (
-                np.sum(self.mol_chamber * species_standard_enthalpies)
+                np.sum(self.mol_chamber * species_standard_enthalpies)  # type: ignore[reportArgumentType]
                 - self.total_enthalpy_ing
             )
             == 0
@@ -220,8 +222,8 @@ class ChamberEquilibrium(ImplicitAnalysis):
 
         # get total enthalpy for system assuming total system mass is
         # arbitrarily 1 kg, [units: J]; OK - checked with RPA
-        self.total_enthalpy_ing = np.sum(
-            heat_form_ing * self.mass_fracs_ing / mol_weight_ing
+        self.total_enthalpy_ing = np.sum(  # type: ignore[reportArgumentType]
+            heat_form_ing * self.mass_fracs_ing / mol_weight_ing  # type: ignore[reportOperatorIssue]
         )
 
     def _process_gas_species(self):
@@ -291,7 +293,7 @@ class ChamberEquilibrium(ImplicitAnalysis):
         """Process optimization results into more useful numbers."""
 
         # get mass and mole fractions
-        self.n_tot = np.sum(self.mol_chamber)
+        self.n_tot = np.sum(self.mol_chamber)  # type: ignore[reportOperatorIssue]
         self.mass_fracs = self.mol_chamber * self.mol_weights_chamber
         self.mol_fracs = self.mol_chamber / self.n_tot
 
@@ -303,13 +305,13 @@ class ChamberEquilibrium(ImplicitAnalysis):
 
         # calculate enthalpy after reaction (should equal enthalpy before
         # reaction)
-        self.enthalpy_after_reac = np.sum(
+        self.enthalpy_after_reac = np.sum(  # type: ignore[reportOperatorIssue]
             np.array([func(self.temp_chamber) for func in self.enthalpy_funcs])
             * self.mol_chamber
         )
 
         # calculate generic gas properties
-        self.cp_after_reac = np.sum(
+        self.cp_after_reac = np.sum(  # type: ignore[reportOperatorIssue]
             np.array([func(self.temp_chamber) for func in self.cp_funcs])
             * self.mol_chamber
         )

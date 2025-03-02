@@ -92,7 +92,7 @@ def test_chamber_equilibrium(
     p_c: float,
     prop_formula: dict,
     T_c_test: float,
-    mol_fracs_test: float,
+    mol_fracs_test: dict,
 ):
     chamber = ce.ChamberEquilibrium(
         propellant_formula=prop_formula,

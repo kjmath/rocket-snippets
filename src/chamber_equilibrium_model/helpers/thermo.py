@@ -11,10 +11,13 @@ def make_stoich_coef_matrix(gas_obj):
     element i per molecule species j.
 
     Args:
-        gas_obj:
+        gas_obj: cantera.Solution object
+            representing combustion products; used only for looking up
+            thermodynamic properties of combustion products
 
     Returns:
-        n_species x n_elements matrix:
+        n_species x n_elements matrix: describing the number of atoms of
+            element i per molecule of species j
     """
     n_species = gas_obj.n_species
     n_elements = gas_obj.n_elements
@@ -38,8 +41,12 @@ def get_elements_in_propellant(
     """Get a list of elements in propellant ingredients.
 
     Args:
-        prop_formula_dict:
-        prop_ingredients_dict:
+        prop_formula_dict: a dictionary with keys that are
+                propellant ingredients and values that are mass fractions,
+                e.g. {"AP": 0.8, "HTPB+Curative": 0.2}
+        prop_ingredients_dict: a dictionary describing the molecular weights,
+            heats of formation, and chemical formula for possible propellant
+            ingredients, see prop_ingredients.yaml
 
     Returns:
         a list of elements in the propellant / reaction
@@ -60,8 +67,10 @@ def get_species_to_include(elements_in_prop: list, gas_obj: Solution) -> list:
     equilibrium calculations.
 
     Args:
-        elements_in_prop:
-        gas_obj:
+        elements_in_prop: list of chemical elements in propellant
+        gas_obj: cantera.Solution object
+            representing combustion products; used only for looking up
+            thermodynamic properties of combustion products
 
     Returns:
         list of species names to include in equilibrium calculations
@@ -86,7 +95,12 @@ def enthalpy_func_one_piece(
     """NASA 9-Coefficient standard enthalpy parameterization.
 
     Args:
-        temperature (float): gas temperatures to evaluate, [units: K]
+        temperature (NDArray[np.float64]): gas temperatures to evaluate, [units: K]
+        coefs (NDArray[np.float64]): NASA-9 coefficients for respective temperature
+            (lookup table of coefficients in products.yaml)
+        zone (int): index of temperature region for NASA-9 coefficients (which are
+            often specified with different sets of coeffients for different
+            temperature ranges)
 
     Returns:
         float: standard enthalpy at temperatures, [units: J mol**-1]
@@ -114,7 +128,20 @@ def enthalpy_func_blended(
     temperature: NDArray[np.float64],
     coefs: NDArray[np.float64],
 ):
-    """Blended NASA 9-Coefficient enthalpy models."""
+    """Blended NASA 9-Coefficient enthalpy models. Use
+        aerosandbox.numpy.blend() method to smoothly blend fits for different
+        NASA-9 temperature ranges to satisfy C1-continuity requirement for
+        aerosandbox solver.
+
+    Args:
+        temperature (NDArray[np.float64]): gas temperatures to evaluate,
+            [units: K]
+        coefs: NASA-9 coefficients, using cantera.Solution.thermo.coefs
+            formatting
+
+    Returns:
+        the smoothed enthalpies over the specified temperatures
+    """
     num_zones = int(coefs[0])
 
     h = enthalpy_func_one_piece(
@@ -152,10 +179,15 @@ def entropy_func_one_piece(
     """NASA 9-Coefficient standard entropy parameterization.
 
     Args:
-        temperature (float): gas temperatures to evaluate, [units: K]
+        temperature (NDArray[np.float64]): gas temperatures to evaluate, [units: K]
+        coefs (NDArray[np.float64]): NASA-9 coefficients for respective temperature
+            (lookup table of coefficients in products.yaml)
+        zone (int): index of temperature region for NASA-9 coefficients (which are
+            often specified with different sets of coeffients for different
+            temperature ranges)
 
     Returns:
-        float: standard entropy at temperatures, [units: J mol**-1 K**-1]
+        float: standard enthalpy at temperatures, [units: J mol**-1]
     """
     zone_shift = 11 * zone
     s = constants.R_univ * (
@@ -176,7 +208,20 @@ def entropy_func_blended(
     temperature: NDArray[np.float64],
     coefs: NDArray[np.float64],
 ):
-    """Blended NASA 9-Coefficient entropy models."""
+    """Blended NASA 9-Coefficient entropy models. Use
+        aerosandbox.numpy.blend() method to smoothly blend fits for different
+        NASA-9 temperature ranges to satisfy C1-continuity requirement for
+        aerosandbox solver.
+
+    Args:
+        temperature (NDArray[np.float64]): gas temperatures to evaluate,
+            [units: K]
+        coefs: NASA-9 coefficients, using cantera.Solution.thermo.coefs
+            formatting
+
+    Returns:
+        the smoothed entropies over the specified temperatures
+    """
     num_zones = int(coefs[0])
 
     s = entropy_func_one_piece(
@@ -215,10 +260,15 @@ def heat_capacity_func_one_piece(
     parameterization.
 
     Args:
-        temperature (float): gas temperatures to evaluate, [units: K]
+        temperature (NDArray[np.float64]): gas temperatures to evaluate, [units: K]
+        coefs (NDArray[np.float64]): NASA-9 coefficients for respective temperature
+            (lookup table of coefficients in products.yaml)
+        zone (int): index of temperature region for NASA-9 coefficients (which are
+            often specified with different sets of coeffients for different
+            temperature ranges)
 
     Returns:
-        float: standard heat capacity at temperatures, [units: J mol**-1 K**-1]
+        standard heat capacity at temperatures, [units: J mol**-1 K**-1]
     """
     zone_shift = 11 * zone
     cp = constants.R_univ * (
@@ -238,7 +288,21 @@ def heat_capacity_func_blended(
     temperature: NDArray[np.float64],
     coefs: NDArray[np.float64],
 ):
-    """Blended NASA 9-Coefficient heat capacity models."""
+    """Blended NASA 9-Coefficient heat capacity models. Use
+        aerosandbox.numpy.blend() method to smoothly blend fits for different
+        NASA-9 temperature ranges to satisfy C1-continuity requirement for
+        aerosandbox solver.
+
+    Args:
+        temperature (NDArray[np.float64]): gas temperatures to evaluate,
+            [units: K]
+        coefs: NASA-9 coefficients, using cantera.Solution.thermo.coefs
+            formatting
+
+    Returns:
+        the smoothed heat capacities at constant pressure over the specified
+            temperatures
+    """
     num_zones = int(coefs[0])
 
     cp = heat_capacity_func_one_piece(
@@ -271,14 +335,17 @@ def heat_capacity_func_blended(
 def make_thermo_funcs(
     gas_obj: Solution,
 ):
-    """Return a dictionary containing two lists of functions, describing
+    """Return a dictionary containing three lists of functions, describing
     entropy and enthalpy for each species.
 
     Args:
-        gas_obj:
+        gas_obj: cantera.Solution object
+            representing combustion products; used only for looking up
+            thermodynamic properties of combustion products
 
     Returns:
-        dict:
+        dictionary containining functions for entropy, enthalpy, and heat
+            capacity for all species
     """
     species_names = gas_obj.species_names
 

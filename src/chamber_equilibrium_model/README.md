@@ -5,12 +5,12 @@ An end-to-end differentiable thermodynamic equilibrium model and solver for soli
 
 ## Installation and Running
 
-First, go install the [uv package manager for python](https://docs.astral.sh/uv/getting-started/installation/#installation-methods). 
+First, install the [uv package manager for python](https://docs.astral.sh/uv/getting-started/installation/#installation-methods). 
 
 Then,
 ```bash
 git clone https://github.com/kjmath/rocket-snippets.git
-cd rocket-snipets/src/chamber_equilibrium_model
+cd rocket-snippets/src/chamber_equilibrium_model
 uv run chamber_equilibrium.py
 ```
 Running the model with ```uv run``` will automatically download and install compatible versions of python and all dependencies in a virtual environment. 
@@ -18,19 +18,19 @@ Running the model with ```uv run``` will automatically download and install comp
 ## File Structure of this Sub-Module
 
 - ```chamber_equilibrium.py```: the main file, which implements variables and constraints of the thermodynamic equilibrium problem and solves for the equilibrium condition in the ```ChamberEquilibrium()``` class
-- ```helpers/thermo.py```: various helper methods, including methods for determining stoichiometric coefficient matrices and implementing NASA-9 models for thermodynamic properties
+- ```helpers/thermo.py```: various helper methods, including methods for determining stoichiometric coefficient matrices and implementing [NASA-9 models](https://cantera.org/dev/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization) for thermodynamic properties
 - ```helpers/products.yaml```: file containing [NASA-9 coefficients](https://ntrs.nasa.gov/citations/20020085330) and other parameters for products in propellants, formatted as a ```yaml``` file for use with ```Cantera``` objects
 - ```helpers/prop_ingredients.yaml```: file containing information about molecular weight, heat of formation, and chemical formula for different propellant ingredients
-- ```../tests/test_chamber_equilibrium.py```: unit tests for validating the model, implemented using ```pytest```; outputs are validated against sample outputs from the commercial [RPA](https://www.rocket-propulsion.com/index.htm) software 
+- ```../../tests/test_chamber_equilibrium.py```: unit tests for validating the model, implemented using ```pytest```; outputs are validated against sample outputs from the commercial [RPA](https://www.rocket-propulsion.com/index.htm) software 
 
 
 ## Example Use-Case
 
 This use-case is implemented in the ```chamber_equilibrium.py``` file. 
 
-Some context for this example: This code was written as part of my [PhD work](https://hdl.handle.net/1721.1/151348) to optimize the design of solid rocket motors with constraints on plume radiant emission. The work focused on a class of slow-burning, solid rocket propellants which were doped with the burn-rate supressant oxamide. 
+Some context for this example: This code was written as part of my [PhD work](https://hdl.handle.net/1721.1/151348) to optimize the design of solid rocket motors with constraints on plume radiant emission. The work focused on a class of slow-burning, solid rocket propellants which were doped with the burn-rate suppressant oxamide. 
 
-In this example, we use the model to understand how the equilibrium chamber temperature is affectd by varying chamber pressure and mass fractions of the burn-rate supressant oxamide. A base propellant formulation that can be diluted with some mass fraction ```oxamide_frac``` of oxamide is used:
+In this example, we use the model to understand how the equilibrium chamber temperature is affected by varying chamber pressure and mass fractions of the burn-rate suppressant oxamide. A base propellant formulation that can be diluted with some mass fraction ```oxamide_frac``` of oxamide is used:
 ```python
     prop_formula_ox = {
         "AP": 0.8 * (1 - oxamide_frac),
@@ -96,3 +96,92 @@ The parameters in the governing equations are given in the table below:
 
 Gibbs free energy can be calculated using $\hat{g^0_j} = \hat{h^0_j} - T_c \hat{s^0_j}$.
 Lagrange multipliers $\lambda_i$ are introduced, following the procedure used by Ponomarenko.
+
+## Validation
+
+The model outputs were validated against the outputs of the Rocket Propulsion Analysis ([RPA](https://www.rocket-propulsion.com/index.htm) software.
+For each test case, the chamber pressure and propellant formulation were pre-selected, and resulting chamber temperature and species mole fractions are then compared.
+The relative errors of the model outputs are the relative errors of the model outputs are ≤ 10<sup>-4</sup>.
+The cases below are implemented as unit tests in [```test_chamber_equilibrium.py```](https://github.com/kjmath/rocket-snippets/blob/main/tests/test_chamber_equilibrium.py).
+
+
+### Case 1
+
+**Inputs:**
+
+Chamber Pressure: 1 MPa
+
+Propellant Formulation: 
+| Chemical name                                                       | Mass fraction |
+|:--------------------------------------------------------------------|-------------:|
+| Ammonium Perchlorate (AP)                                           |         0.8  |
+| Hydroxyl Terminated Polybutadiene (HTPB) + Curative                 |       0.142  |
+| Isodecyl Pelargonate (IDP)                                          |      0.0524  |
+| Graphite powder                                                     |      0.0026  |
+| HX-752                                                              |       0.003  |
+
+
+**Output Comparison:**
+
+| Parameter           | This Model | RPA      | Relative error [-]     |
+|---------------------|------------|----------|------------------------|
+| Temperature [K]     | 2180.20    | 2180.31  | 5 × 10<sup>-5</sup>    |
+| w<sub>CO</sub> [-]  | 0.25063    | 0.25049  | 4 × 10<sup>-5</sup>    |
+| w<sub>CO₂</sub> [-] | 0.18949    | 0.18947  | 1 × 10<sup>-5</sup>    |
+| w<sub>H₂</sub> [-]  | 0.21688    | 0.21682  | 3 × 10<sup>-5</sup>    |
+| w<sub>HCl</sub> [-] | 0.15946    | 0.15950  | 3 × 10<sup>-5</sup>    |
+| w<sub>N₂</sub> [-]  | 0.07604    | 0.07601  | 4 × 10<sup>-5</sup>    |
+
+### Case 2
+
+**Inputs:**
+
+Chamber Pressure: 5 MPa
+
+Propellant Formulation: 
+| Chemical name                                                       | Mass fraction |
+|:--------------------------------------------------------------------|-------------:|
+| Ammonium Perchlorate (AP)                                           |         0.8  |
+| Hydroxyl Terminated Polybutadiene (HTPB) + Curative                 |       0.142  |
+| Isodecyl Pelargonate (IDP)                                          |      0.0524  |
+| Graphite powder                                                     |      0.0026  |
+| HX-752                                                              |       0.003  |
+
+**Output Comparison:**
+
+| Parameter            | This Model         | RPA       | Relative error [-]    |
+|----------------------|---------------------|-----------|-----------------------|
+| Temperature [K]      | 2183.96            | 2184.08   | 5 × 10<sup>-5</sup>   |
+| w<sub>CO</sub> [-]   | 0.25079            | 0.25073   | 1 × 10<sup>-5</sup>   |
+| w<sub>CO₂</sub> [-]  | 0.25043            | 0.25049   | 2 × 10<sup>-5</sup>   |
+| w<sub>H₂</sub> [-]   | 0.21694            | 0.21691   | 1 × 10<sup>-4</sup>   |
+| w<sub>HCl</sub> [-]  | 0.14970            | 0.14963   | 4 × 10<sup>-5</sup>   |
+| w<sub>N₂</sub> [-]   | 0.07606            | 0.07565   | 1 × 10<sup>-4</sup>   |
+
+### Case 3
+
+**Inputs:**
+
+Chamber Pressure: 2 MPa
+
+Propellant Formulation: 
+| Chemical name                                                       | Mass fraction |
+|:--------------------------------------------------------------------|-------------:|
+| Ammonium Perchlorate (AP)                                           |       0.736  |
+| Hydroxyl Terminated Polybutadiene (HTPB) + Curative                 |     0.13064  |
+| Isodecyl Pelargonate (IDP)                                          |    0.048208  |
+| Graphite powder                                                     |    0.002392  |
+| HX-752                                                              |     0.00276  |
+| Oxamide                                                             |        0.08  |
+
+**Output Comparison:**
+
+| Parameter            | This Model                 | RPA       | Relative error [-]     |
+|----------------------|-----------------------------|-----------|------------------------|
+| Pressure [MPa]       | 2                           | –         | –                      |
+| Temperature [K]      | 1904.04                     | 1904.16   | 6 × 10<sup>-5</sup>    |
+| w<sub>CO</sub> [-]   | 0.25940                     | 0.25940   | < 1 × 10<sup>-5</sup>  |
+| w<sub>CO₂</sub> [-]  | 0.08759                     | 0.08757   | 1 × 10<sup>-5</sup>    |
+| w<sub>H₂</sub> [-]   | 0.21998                     | 0.21988   | 9 × 10<sup>-5</sup>    |
+| w<sub>HCl</sub> [-]  | 0.19319                     | 0.19325   | 3 × 10<sup>-5</sup>    |
+| w<sub>N₂</sub> [-]   | 0.08823                     | 0.08822   | 1 × 10<sup>-4</sup>    |

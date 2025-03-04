@@ -1,3 +1,5 @@
+from contextlib import redirect_stderr
+import io
 import aerosandbox.numpy as np
 import aerosandbox as asb
 from aerosandbox.common import ImplicitAnalysis
@@ -10,6 +12,7 @@ from proptools import constants
 from typing import Optional
 import casadi as cas
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # constants
 P_STP = 101325  # Pa
@@ -204,12 +207,12 @@ class ChamberEquilibrium(ImplicitAnalysis):
     def _process_prop_formula(self):
         """Process propellant formula for use in optimization."""
 
-        # define some relavant attributes
+        # define some relevant attributes
         self.ingredients = list(self.prop_formula.keys())
         self.n_ingredients = np.size(self.ingredients)
         self.mass_fracs_ing = np.array(list(self.prop_formula.values()))
 
-        # read in prop ingredents yaml
+        # read in prop ingredients yaml
         prop_ingredients_path = self.parent_directory / "helpers/prop_ingredients.yaml"
         with open(prop_ingredients_path) as file:
             prop_ingredients_dict = yaml.safe_load(file)
@@ -379,6 +382,8 @@ if __name__ == "__main__":
     chamber1 = ChamberEquilibrium(propellant_formula=prop_formula_ox, p_c=p_c)
     chamber1.print_report()
 
+    print("\nChamber report for single example completed.\nStart sweep...")
+
     ### Example with Sweep
 
     # establish ranges for sweeping pressure and oxamide mass fraction
@@ -394,11 +399,10 @@ if __name__ == "__main__":
     )
 
     # sweep parameters, run simulation, and plot for each chamber pressure
-    for p in pressure_range:
+    for p in tqdm(pressure_range, desc="Chamber Pressure", leave=False):
         p_output = []
-        for (
-            oxamide_frac
-        ) in ox_range:  # initialize propellant formula parameter to sweep
+        # initialize propellant formula parameter to sweep
+        for oxamide_frac in tqdm(ox_range, desc="Oxamide Mass Fraction", leave=False):
             opti = asb.Opti()  # type: ignore[reportCallIssue]
             prop_formula_ox = {
                 "AP": 0.8 * (1 - oxamide_frac),
@@ -413,7 +417,9 @@ if __name__ == "__main__":
                 p_c=p,
                 opti=opti,  # type: ignore[reportCallIssue]
             )
-            sol = opti.solve(verbose=False)  # set verbose to false
+            with redirect_stderr(io.StringIO()) as f:
+                # call opti.solve() within redirect_stderr to suppress spurious warning from CasADi
+                sol = opti.solve(verbose=False)
             chamber2.substitute_solution(sol)
             p_output.append(chamber2.temp_chamber)
 

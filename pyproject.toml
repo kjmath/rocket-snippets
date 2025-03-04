@@ -11,6 +11,7 @@ dependencies = [
     "matplotlib>=3.10.1",
     "proptools-rocket>=0.0.2",
     "pyyaml>=6.0.2",
+    "tqdm>=4.67.1",
     "typing>=3.10.0.0",
 ]
 

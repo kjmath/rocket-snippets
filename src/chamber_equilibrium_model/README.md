@@ -101,7 +101,7 @@ Lagrange multipliers $\lambda_i$ are introduced, following the procedure used by
 
 The model outputs were validated against the outputs of the Rocket Propulsion Analysis ([RPA](https://www.rocket-propulsion.com/index.htm)) software.
 For each test case, the chamber pressure and propellant formulation were pre-selected, and resulting chamber temperature and species mole fractions are then compared.
-The relative errors of the model outputs are the relative errors of the model outputs are ≤ 10<sup>-4</sup>.
+The relative errors of the model outputs are ≤ 10<sup>-4</sup>.
 The cases below are implemented as unit tests in [```test_chamber_equilibrium.py```](https://github.com/kjmath/rocket-snippets/blob/main/tests/test_chamber_equilibrium.py).
 
 

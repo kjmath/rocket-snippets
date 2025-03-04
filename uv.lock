@@ -468,6 +468,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "proptools-rocket" },
     { name = "pyyaml" },
+    { name = "tqdm" },
     { name = "typing" },
 ]
 
@@ -487,6 +488,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "proptools-rocket", specifier = ">=0.0.2" },
     { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "tqdm", specifier = ">=4.67.1" },
     { name = "typing", specifier = ">=3.10.0.0" },
 ]
 
